@@ -1,13 +1,9 @@
 package com.alexnv.contoller;
 
-import com.alexnv.exception.UserNotFoundException;
-import com.alexnv.model.Role;
 import com.alexnv.model.User;
-import com.alexnv.service.RoleServiceImpl;
 import com.alexnv.service.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -27,14 +23,10 @@ import java.util.Set;
 public class AdminRestController {
 
     private final UserServiceImpl userServiceImpl;
-    private final RoleServiceImpl roleServiceImpl;
-    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public AdminRestController(UserServiceImpl userServiceImpl, RoleServiceImpl roleServiceImpl, PasswordEncoder passwordEncoder) {
+    public AdminRestController(UserServiceImpl userServiceImpl) {
         this.userServiceImpl = userServiceImpl;
-        this.roleServiceImpl = roleServiceImpl;
-        this.passwordEncoder = passwordEncoder;
     }
 
     @GetMapping
@@ -62,31 +54,14 @@ public class AdminRestController {
             @RequestBody User user,
             @RequestParam("roles") Set<Long> roleIds) {
 
-        User newUser = new User();
+        User savedUser = userServiceImpl.createUser(user, roleIds);
 
-        Set<Role> roles = roleServiceImpl.findRolesByIds(roleIds);
-
-        newUser.setFirstname(user.getFirstname());
-        newUser.setLastname(user.getLastname());
-        newUser.setAge(user.getAge());
-        newUser.setEmail(user.getEmail());
-
-        if (user.getPassword() != null) {
-            newUser.setPassword(passwordEncoder.encode(user.getPassword()));
-        }
-
-        newUser.setRoles(roles);
-
-        User savedUser = userServiceImpl.saveUser(newUser);
         return ResponseEntity.ok(savedUser);
     }
 
-    @GetMapping("/{id}/edit")
-    public ResponseEntity<User> showEditUserForm(@PathVariable("id") Long id) {
+    @GetMapping("/user/{id}")
+    public ResponseEntity<User> getUser(@PathVariable Long id) {
         User user = userServiceImpl.findById(id);
-        if (user == null) {
-            throw new UserNotFoundException("User with ID " + id + " not found.");
-        }
         return ResponseEntity.ok(user);
     }
 
@@ -96,33 +71,8 @@ public class AdminRestController {
             @RequestBody User user,
             @RequestParam("roles") Set<Long> roleIds) {
 
-        User existingUser = userServiceImpl.findById(id);
-        if (existingUser == null) {
-            throw new UserNotFoundException("User with ID " + id + " not found.");
-        }
-
-        Set<Role> roles = roleServiceImpl.findRolesByIds(roleIds);
-
-        existingUser.setFirstname(user.getFirstname());
-        existingUser.setLastname(user.getLastname());
-        existingUser.setAge(user.getAge());
-        existingUser.setEmail(user.getEmail());
-
-        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
-        }
-
-        existingUser.setRoles(roles);
-
-        userServiceImpl.updateUser(id, existingUser, roles);
-
-        return ResponseEntity.ok(existingUser);
-    }
-
-    @GetMapping("/user/{id}")
-    public ResponseEntity<User> getUser(@PathVariable Long id) {
-        User user = userServiceImpl.findById(id);
-        return ResponseEntity.ok(user);
+        User updatedUser = userServiceImpl.updateUser(id, user, roleIds);
+        return ResponseEntity.ok(updatedUser);
     }
 
     @DeleteMapping("/user/{id}")

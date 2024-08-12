@@ -16,11 +16,13 @@ import java.util.Set;
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RoleServiceImpl roleServiceImpl;
 
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, RoleServiceImpl roleServiceImpl) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.roleServiceImpl = roleServiceImpl;
     }
 
     @Override
@@ -38,15 +40,28 @@ public class UserServiceImpl implements UserService {
         return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 
-    @Override
-    public User saveUser(User user) {
-        return userRepository.save(user);
+    public User createUser(User user, Set<Long> roleIds) {
+
+        Set<Role> roles = roleServiceImpl.findRolesByIds(roleIds);
+
+        User newUser = new User();
+        newUser.setFirstname(user.getFirstname());
+        newUser.setLastname(user.getLastname());
+        newUser.setAge(user.getAge());
+        newUser.setEmail(user.getEmail());
+        newUser.setPassword(passwordEncoder.encode(user.getPassword()));
+        newUser.setRoles(roles);
+
+        return userRepository.save(newUser);
     }
 
     @Override
-    public User updateUser(Long id, User user, Set<Role> roles) {
+    public User updateUser(Long id, User user, Set<Long> roleIds) {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + id));
+
+        Set<Role> roles = roleServiceImpl.findRolesByIds(roleIds);
+
         if (user.getEmail() != null) {
             existingUser.setEmail(user.getEmail());
         }
@@ -60,11 +75,10 @@ public class UserServiceImpl implements UserService {
             existingUser.setAge(user.getAge());
         }
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            existingUser.setPassword(user.getPassword());
+            existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
         }
-        if (roles != null) {
-            existingUser.setRoles(roles);
-        }
+        existingUser.setRoles(roles);
+
         return userRepository.save(existingUser);
     }
 

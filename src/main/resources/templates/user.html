@@ -118,7 +118,7 @@
 <script>
     $(document).ready(function() {
         function fetchCurrentUser() {
-            return fetch('/api/admin/current')
+            return fetch('/api/user/current')
                 .then(response => response.json())
                 .catch(error => console.error('Error fetching current user info:', error));
         }

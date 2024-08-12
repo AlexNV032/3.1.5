@@ -352,7 +352,13 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const baseUrl = '/user';
-        document.getElementById('userLink').href = baseUrl;
+        const userLink = document.getElementById('userLink');
+        if (userLink) {
+            userLink.setAttribute('href', baseUrl);
+            console.log('User link href set to:', userLink.getAttribute('href'));
+        } else {
+            console.warn('User link not found');
+        }
     });
 </script>
 
